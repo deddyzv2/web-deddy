@@ -100,7 +100,14 @@ dist
 
 7. Deploy.
 
-Pastikan URL domain Vercel sudah ditambahkan di Supabase Auth settings jika memakai email confirmation atau redirect.
+Pastikan URL domain Vercel sudah ditambahkan di Supabase Auth settings jika memakai email confirmation, reset password, atau redirect.
+
+Di dashboard Supabase, buka `Authentication > URL Configuration`, lalu atur:
+
+- `Site URL`: URL Vercel aplikasi
+- `Redirect URLs`: URL Vercel aplikasi
+
+Kode reset password memakai `window.location.origin`, jadi URL redirect akan mengikuti domain tempat aplikasi dibuka dan tidak di-hardcode ke localhost.
 
 ## Struktur Penting
 

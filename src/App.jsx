@@ -19,15 +19,17 @@ const initialTones = {
 }
 
 const initialBrainstorm = {
-  inspirationSource: '',
-  specificReference: '',
-  interestingThing: '',
-  keywords: '',
-  mainSubject: '',
-  location: '',
-  moment: '',
-  importantObject: '',
-  capturedFeeling: '',
+  keyword: '',
+  interpretation: 'Emosional',
+  customInterpretation: '',
+  developed: false,
+  selectedCharacter: '',
+  selectedPose: '',
+  selectedElement: '',
+  selectedMood: '',
+  additionalNotes: '',
+  aiSuggestions: null,
+  aiConceptSummary: '',
 }
 
 const initialTodoForm = {
@@ -148,6 +150,77 @@ const toneConfig = [
   },
 ]
 
+const interpretationOptions = ['Emosional', 'Dramatis', 'Puitis', 'Fantasi', 'Gelap', 'Hangat', 'Aksi', 'Tenang']
+
+const sliderRecommendations = {
+  Emosional: { energy: 2, emotional: 3, mood: 3, power: 2 },
+  Dramatis: { energy: 4, emotional: 4, mood: 4, power: 3 },
+  Puitis: { energy: 2, emotional: 3, mood: 2, power: 2 },
+  Fantasi: { energy: 3, emotional: 3, mood: 2, power: 4 },
+  Gelap: { energy: 2, emotional: 4, mood: 5, power: 2 },
+  Hangat: { energy: 2, emotional: 2, mood: 1, power: 3 },
+  Aksi: { energy: 5, emotional: 4, mood: 4, power: 5 },
+  Tenang: { energy: 1, emotional: 2, mood: 2, power: 3 },
+  default: { energy: 3, emotional: 3, mood: 3, power: 3 },
+}
+
+const genericVisualSuggestions = {
+  characters: [
+    'karakter yang menyembunyikan sesuatu',
+    'seseorang yang ingin pergi tapi tertahan',
+    'karakter yang terlihat tenang tapi rapuh',
+    'penjaga tempat sunyi dengan rahasia kecil',
+  ],
+  poses: [
+    'tangan menggenggam erat',
+    'duduk meringkuk',
+    'menatap jauh',
+    'badan condong seperti ingin pergi',
+    'tangan menyentuh kaca',
+  ],
+  elements: ['tangan', 'mata', 'cahaya dari jendela', 'bayangan', 'pintu', 'rantai', 'bunga layu', 'kaca retak'],
+  moods: ['biru dingin', 'cahaya hangat dari luar', 'abu-abu redup', 'kontras gelap terang', 'pastel lembut', 'merah gelap'],
+}
+
+const keywordVisualSuggestions = {
+  terjebak: {
+    characters: ['karakter di balik pintu tertutup', 'seseorang yang tertahan oleh bayangan sendiri', 'anak muda di ruang sempit'],
+    poses: ['tangan menekan kaca', 'bahu menegang', 'menunduk di sudut ruangan'],
+    elements: ['pintu terkunci', 'rantai tipis', 'jendela kecil', 'kaca retak'],
+    moods: ['biru dingin', 'abu-abu redup', 'kontras gelap terang'],
+  },
+  bebas: {
+    characters: ['karakter berlari ke ruang terbuka', 'seseorang melepas mantel berat', 'pengelana yang menemukan langit luas'],
+    poses: ['tangan terbuka ke udara', 'melompat ringan', 'berdiri menghadap angin'],
+    elements: ['langit luas', 'burung jauh', 'kain tertiup angin', 'pintu terbuka'],
+    moods: ['cahaya pagi', 'biru cerah', 'putih lembut', 'hijau segar'],
+  },
+  rindu: {
+    characters: ['karakter memegang surat lama', 'seseorang menunggu di ambang pintu', 'figur sunyi di dekat jendela'],
+    poses: ['menatap jauh', 'memeluk benda kecil', 'duduk diam dengan bahu turun'],
+    elements: ['surat', 'foto lama', 'lampu meja', 'hujan di jendela'],
+    moods: ['cahaya hangat redup', 'coklat lembut', 'biru malam', 'pastel pudar'],
+  },
+  lelah: {
+    characters: ['pekerja kreatif yang kehabisan energi', 'karakter dengan senyum tipis yang dipaksakan', 'penjaga malam yang mengantuk'],
+    poses: ['kepala bersandar di tangan', 'bahu turun', 'duduk di lantai dengan mata setengah tertutup'],
+    elements: ['gelas kosong', 'meja berantakan', 'lampu redup', 'bayangan panjang'],
+    moods: ['abu-abu hangat', 'kuning lampu redup', 'biru pucat', 'kontras rendah'],
+  },
+  pulang: {
+    characters: ['karakter membawa tas kecil', 'seseorang berdiri di depan rumah lama', 'pengelana yang melihat cahaya rumah'],
+    poses: ['berhenti di ambang pintu', 'menoleh ke belakang', 'memegang gagang pintu'],
+    elements: ['pintu rumah', 'lampu teras', 'sepatu basah', 'jalan kecil'],
+    moods: ['cahaya hangat dari dalam', 'oranye senja', 'hijau lembut', 'biru sore'],
+  },
+  asing: {
+    characters: ['karakter sendirian di kota besar', 'pendatang baru dengan pakaian berbeda', 'seseorang yang tidak dikenali keramaian'],
+    poses: ['berdiri kaku di tengah arus orang', 'memegang tas erat', 'melihat sekitar dengan ragu'],
+    elements: ['neon asing', 'peta kusut', 'kerumunan blur', 'bayangan gedung'],
+    moods: ['ungu dingin', 'biru neon', 'abu-abu kota', 'kontras tajam'],
+  },
+}
+
 const starterTemplates = [
   {
     id: 'cozy-character-key-visual',
@@ -214,7 +287,20 @@ function normalizeProject(project = {}) {
 }
 
 function normalizeBrainstorm(brainstorm = {}) {
-  return { ...initialBrainstorm, ...brainstorm }
+  return {
+    ...initialBrainstorm,
+    keyword: brainstorm.keyword || brainstorm.kata_kunci || brainstorm.keywords || brainstorm.mainSubject || '',
+    interpretation: brainstorm.interpretation || brainstorm.arah_interpretasi || 'Emosional',
+    customInterpretation: brainstorm.customInterpretation || brainstorm.arah_sendiri || '',
+    developed: Boolean(brainstorm.developed),
+    selectedCharacter: brainstorm.selectedCharacter || brainstorm.karakter_pilihan || brainstorm.mainSubject || '',
+    selectedPose: brainstorm.selectedPose || brainstorm.pose_pilihan || brainstorm.moment || '',
+    selectedElement: brainstorm.selectedElement || brainstorm.elemen_visual_pilihan || brainstorm.importantObject || '',
+    selectedMood: brainstorm.selectedMood || brainstorm.warna_mood_pilihan || brainstorm.capturedFeeling || '',
+    additionalNotes: brainstorm.additionalNotes || brainstorm.catatan_tambahan || brainstorm.interestingThing || '',
+    aiSuggestions: normalizeAiSuggestions(brainstorm.aiSuggestions),
+    aiConceptSummary: brainstorm.aiConceptSummary || brainstorm.ringkasan_ai || '',
+  }
 }
 
 function mapTemplateRow(row) {
@@ -348,26 +434,109 @@ function generateOutputs(project, tones) {
 }
 
 function generateBrainstormOutputs(brainstorm) {
-  const subject = brainstorm.mainSubject || 'subjek utama belum ditentukan'
-  const location = brainstorm.location || 'lokasi belum ditentukan'
-  const moment = brainstorm.moment || 'momen atau aktivitas belum ditentukan'
-  const object = brainstorm.importantObject || 'objek penting belum ditentukan'
-  const feeling = brainstorm.capturedFeeling || 'rasa yang ingin ditangkap belum ditentukan'
-  const source = brainstorm.inspirationSource || 'sumber inspirasi belum ditentukan'
-  const reference = brainstorm.specificReference || 'referensi spesifik belum ditentukan'
-  const interesting = brainstorm.interestingThing || 'hal menarik belum ditentukan'
-  const keywords = brainstorm.keywords || 'kata kunci belum ditentukan'
+  const keyword = brainstorm.keyword || 'kata kunci belum ditentukan'
+  const interpretation = getActiveInterpretation(brainstorm)
+  const character = brainstorm.selectedCharacter || 'karakter belum dipilih'
+  const pose = brainstorm.selectedPose || 'pose belum dipilih'
+  const element = brainstorm.selectedElement || 'elemen visual belum dipilih'
+  const mood = brainstorm.selectedMood || 'warna atau mood belum dipilih'
+  const notes = brainstorm.additionalNotes?.trim()
+  const noteSentence = notes ? ` ${notes}.` : ''
+  const suggestions = getBrainstormSuggestions(brainstorm)
+  const recommendation = getSliderRecommendation(brainstorm)
+  const hasChoices = Boolean(brainstorm.selectedCharacter || brainstorm.selectedPose || brainstorm.selectedElement || brainstorm.selectedMood || notes)
+  const summary = brainstorm.aiConceptSummary && !hasChoices
+    ? brainstorm.aiConceptSummary
+    : `Ilustrasi bertema ${keyword} dengan arah ${interpretation}. Menampilkan ${character} dalam pose ${pose}, dengan highlight visual berupa ${element}. Suasana warna diarahkan ke ${mood}.${noteSentence}`
 
   return {
-    summary: `Ide gambar ini berangkat dari ${source}, terutama referensi ${reference}. Hal yang menarik untuk diangkat adalah ${interesting}. Visual berfokus pada ${subject} di ${location}, sedang mengalami momen ${moment}. Rasa utama yang ingin ditangkap adalah ${feeling}, dengan kata kunci: ${keywords}.`,
-    visualElements: `Elemen visual yang bisa dipakai: lokasi ${location}; objek penting ${object}; nuansa rasa ${feeling}; kata kunci ${keywords}. Kombinasikan elemen tersebut sebagai focal point, detail pendukung, palet warna, gestur, dan atmosfer agar ide terasa utuh.`,
+    summary,
+    visualElements: [
+      `Kata kunci: ${keyword}`,
+      `Arah: ${interpretation}`,
+      `Karakter: ${character}`,
+      `Pose/Gesture: ${pose}`,
+      `Highlight: ${element}`,
+      `Warna/Mood: ${mood}`,
+    ].join('\n'),
+    suggestions,
+    recommendation,
   }
+}
+
+function createBrainstormPayload(brainstorm, outputs) {
+  const interpretation = getActiveInterpretation(brainstorm)
+  return {
+    ...brainstorm,
+    kata_kunci: brainstorm.keyword,
+    arah_interpretasi: interpretation,
+    karakter_pilihan: brainstorm.selectedCharacter,
+    pose_pilihan: brainstorm.selectedPose,
+    elemen_visual_pilihan: brainstorm.selectedElement,
+    warna_mood_pilihan: brainstorm.selectedMood,
+    catatan_tambahan: brainstorm.additionalNotes,
+    ai_suggestions: brainstorm.aiSuggestions,
+    ringkasan_ai: brainstorm.aiConceptSummary,
+    ringkasan_konsep: outputs.summary,
+    rekomendasi_energy: outputs.recommendation.energy,
+    rekomendasi_emotional_tone: outputs.recommendation.emotional,
+    rekomendasi_mood: outputs.recommendation.mood,
+    rekomendasi_power_dynamic: outputs.recommendation.power,
+  }
+}
+
+function getActiveInterpretation(brainstorm) {
+  return brainstorm.customInterpretation?.trim() || brainstorm.interpretation || 'Emosional'
+}
+
+function getSliderRecommendation(brainstorm) {
+  const interpretation = getActiveInterpretation(brainstorm)
+  return sliderRecommendations[interpretation] || sliderRecommendations.default
+}
+
+function getBrainstormSuggestions(brainstorm) {
+  if (brainstorm.aiSuggestions) return brainstorm.aiSuggestions
+
+  const keyword = brainstorm.keyword?.trim().toLowerCase()
+  const directMatch = keywordVisualSuggestions[keyword]
+  const partialMatch = keyword
+    ? Object.entries(keywordVisualSuggestions).find(([key]) => keyword.includes(key) || key.includes(keyword))?.[1]
+    : null
+  const source = directMatch || partialMatch || genericVisualSuggestions
+
+  return {
+    characters: uniqueShortList([
+      ...source.characters,
+      keyword ? `karakter yang membawa rasa "${brainstorm.keyword}"` : 'karakter dengan konflik kecil yang terlihat dari ekspresi',
+      ...genericVisualSuggestions.characters,
+    ]),
+    poses: uniqueShortList([...source.poses, ...genericVisualSuggestions.poses]),
+    elements: uniqueShortList([...source.elements, ...genericVisualSuggestions.elements]),
+    moods: uniqueShortList([...source.moods, ...genericVisualSuggestions.moods]),
+  }
+}
+
+function uniqueShortList(items, limit = 8) {
+  return [...new Set(items.filter(Boolean))].slice(0, limit)
+}
+
+function normalizeAiSuggestions(value) {
+  if (!value || typeof value !== 'object') return null
+  const characters = uniqueShortList(value.characters || [])
+  const poses = uniqueShortList(value.poses || [])
+  const elements = uniqueShortList(value.elements || value.highlights || [])
+  const moods = uniqueShortList(value.moods || value.colorsAndMood || [])
+
+  if (characters.length === 0 || poses.length === 0 || elements.length === 0 || moods.length === 0) return null
+  return { characters, poses, elements, moods }
 }
 
 function App() {
   const [activeTab, setActiveTab] = useState('home')
   const [user, setUser] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false)
+  const [authNotice, setAuthNotice] = useState(null)
   const [dataStatus, setDataStatus] = useState('')
   const [saveStatus, setSaveStatus] = useState('')
   const [project, setProject] = useState(initialProject)
@@ -379,6 +548,8 @@ function App() {
   const [brainstorms, setBrainstorms] = useState([])
   const [brainstormName, setBrainstormName] = useState('')
   const [selectedBrainstormId, setSelectedBrainstormId] = useState('')
+  const [brainstormAiLoading, setBrainstormAiLoading] = useState(false)
+  const [brainstormAiError, setBrainstormAiError] = useState('')
   const [todos, setTodos] = useState([])
   const [todoForm, setTodoForm] = useState(initialTodoForm)
   const [editingTodoId, setEditingTodoId] = useState('')
@@ -398,7 +569,11 @@ function App() {
       setAuthLoading(false)
     })
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsPasswordRecovery(true)
+        setAuthNotice(null)
+      }
       setUser(session?.user || null)
       setAuthLoading(false)
     })
@@ -449,6 +624,58 @@ function App() {
 
   const updateBrainstorm = (field, value) => {
     setBrainstorm((current) => ({ ...current, [field]: value }))
+  }
+
+  const developBrainstormIdea = async () => {
+    const keyword = brainstorm.keyword.trim()
+    if (!keyword) {
+      setSaveStatus('Kata kunci wajib diisi')
+      setBrainstormAiError('Kata kunci wajib diisi.')
+      return
+    }
+
+    setBrainstormAiLoading(true)
+    setBrainstormAiError('')
+    setSaveStatus('Mengembangkan ide...')
+
+    try {
+      const response = await fetch('/api/brainstorm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keyword }),
+      })
+      const result = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Gagal mengembangkan ide dengan Gemini.')
+      }
+
+      const aiSuggestions = normalizeAiSuggestions({
+        characters: result.characters,
+        poses: result.poses,
+        highlights: result.highlights,
+        colorsAndMood: result.colorsAndMood,
+      })
+
+      if (!aiSuggestions) {
+        throw new Error('Format hasil Gemini tidak lengkap.')
+      }
+
+      setBrainstorm((current) => ({
+        ...current,
+        keyword: result.keyword || keyword,
+        developed: true,
+        aiSuggestions,
+        aiConceptSummary: result.conceptSummary || '',
+      }))
+      setSaveStatus('Ide berhasil dikembangkan')
+    } catch (error) {
+      setBrainstorm((current) => ({ ...current, developed: true, aiSuggestions: null, aiConceptSummary: '' }))
+      setBrainstormAiError(error.message || 'Gagal mengembangkan ide dengan Gemini. Saran lokal tetap ditampilkan.')
+      setSaveStatus('Gagal mengembangkan ide dengan Gemini. Saran lokal tetap ditampilkan.')
+    } finally {
+      setBrainstormAiLoading(false)
+    }
   }
 
   const updateTodoForm = (field, value) => {
@@ -684,15 +911,15 @@ function App() {
     }
 
     setSaveStatus('Menyimpan...')
-    const name = brainstormName.trim() || brainstorm.mainSubject.trim() || `Ide ${brainstorms.length + 1}`
+    const name = brainstormName.trim() || brainstorm.keyword.trim() || brainstorm.selectedCharacter.trim() || `Ide ${brainstorms.length + 1}`
     const { data, error } = await supabase
       .from('brainstorming_ideas')
-      .insert({ user_id: user.id, name, idea: brainstorm })
+      .insert({ user_id: user.id, name, idea: createBrainstormPayload(brainstorm, brainstormOutputs) })
       .select()
       .single()
 
     if (error) {
-      setSaveStatus('Gagal menyimpan')
+      setSaveStatus('Gagal menyimpan ide')
       return
     }
 
@@ -700,7 +927,7 @@ function App() {
     setBrainstorms((current) => [saved, ...current])
     setSelectedBrainstormId(saved.id)
     setBrainstormName(saved.name)
-    setSaveStatus('Tersimpan')
+    setSaveStatus('Ide berhasil disimpan')
   }
 
   const updateSavedBrainstorm = async () => {
@@ -711,30 +938,35 @@ function App() {
     if (!selectedBrainstormId) return
 
     setSaveStatus('Menyimpan...')
-    const name = brainstormName.trim() || brainstorm.mainSubject.trim() || 'Ide Tanpa Nama'
+    const name = brainstormName.trim() || brainstorm.keyword.trim() || brainstorm.selectedCharacter.trim() || 'Ide Tanpa Nama'
     const { data, error } = await supabase
       .from('brainstorming_ideas')
-      .update({ name, idea: brainstorm })
+      .update({ name, idea: createBrainstormPayload(brainstorm, brainstormOutputs) })
       .eq('id', selectedBrainstormId)
       .select()
       .single()
 
     if (error) {
-      setSaveStatus('Gagal menyimpan')
+      setSaveStatus('Gagal menyimpan ide')
       return
     }
 
     const updated = mapBrainstormRow(data)
     setBrainstorms((current) => current.map((item) => (item.id === updated.id ? updated : item)))
     setBrainstormName(updated.name)
-    setSaveStatus('Tersimpan')
+    setSaveStatus('Ide berhasil diperbarui')
   }
 
   const loadSelectedBrainstorm = () => {
     const selected = brainstorms.find((item) => item.id === selectedBrainstormId)
-    if (!selected) return
+    if (!selected) {
+      setSaveStatus('Gagal memuat ide')
+      return
+    }
     setBrainstorm(normalizeBrainstorm(selected.idea))
     setBrainstormName(selected.name)
+    setBrainstormAiError('')
+    setSaveStatus('Ide berhasil dimuat')
   }
 
   const deleteBrainstorm = async () => {
@@ -744,30 +976,36 @@ function App() {
     const { error } = await supabase.from('brainstorming_ideas').delete().eq('id', selectedBrainstormId)
 
     if (error) {
-      setSaveStatus('Gagal menyimpan')
+      setSaveStatus('Gagal menyimpan ide')
       return
     }
 
     setBrainstorms((current) => current.filter((item) => item.id !== selectedBrainstormId))
     setSelectedBrainstormId('')
     setBrainstormName('')
-    setSaveStatus('Tersimpan')
+    setSaveStatus('Ide berhasil dihapus')
   }
 
   const resetBrainstorm = () => {
     setBrainstorm(initialBrainstorm)
     setBrainstormName('')
     setSelectedBrainstormId('')
+    setBrainstormAiError('')
+    setSaveStatus('Form brainstorming berhasil dikosongkan')
   }
 
   const sendBrainstormToTemplate = () => {
-    const sceneParts = [brainstorm.location, brainstorm.moment].filter(Boolean).join(' - ')
+    const sceneParts = [brainstorm.selectedPose, brainstorm.selectedElement, brainstorm.selectedMood].filter(Boolean).join(' - ')
+    const notes = [brainstormOutputs.summary, sceneParts ? `Elemen adegan: ${sceneParts}` : '', brainstorm.additionalNotes].filter(Boolean).join('\n\n')
     setProject((current) => ({
       ...current,
-      subject: brainstorm.mainSubject,
-      scene: sceneParts,
-      additionalNotes: brainstormOutputs.summary,
+      title: current.title || brainstorm.keyword,
+      subject: brainstorm.selectedCharacter || current.subject || brainstorm.keyword,
+      scene: sceneParts || current.scene,
+      additionalNotes: notes,
     }))
+    setTones(brainstormOutputs.recommendation)
+    setSaveStatus('Konsep berhasil dikirim ke Illustration Slider')
     setActiveTab('template')
   }
 
@@ -986,10 +1224,17 @@ function App() {
     return <Shell><Panel title="Status">Memuat data...</Panel></Shell>
   }
 
-  if (!user) {
+  const finishPasswordRecovery = async () => {
+    setIsPasswordRecovery(false)
+    setAuthNotice({ type: 'success', text: 'Password berhasil diperbarui. Silakan masuk kembali.' })
+    await supabase.auth.signOut()
+    setUser(null)
+  }
+
+  if (!user || isPasswordRecovery) {
     return (
       <Shell>
-        <AuthPage />
+        <AuthPage initialMode={isPasswordRecovery ? 'recovery' : 'login'} initialStatus={authNotice} onPasswordUpdated={finishPasswordRecovery} />
       </Shell>
     )
   }
@@ -1050,11 +1295,14 @@ function App() {
           <BackHomeButton setActiveTab={setActiveTab} />
         <BrainstormingView
           brainstorm={brainstorm}
+          brainstormAiError={brainstormAiError}
+          brainstormAiLoading={brainstormAiLoading}
           brainstormName={brainstormName}
           brainstorms={brainstorms}
           copiedTarget={copiedTarget}
           copyText={copyText}
           deleteBrainstorm={deleteBrainstorm}
+          developBrainstormIdea={developBrainstormIdea}
           loadSelectedBrainstorm={loadSelectedBrainstorm}
           outputs={brainstormOutputs}
           resetBrainstorm={resetBrainstorm}
@@ -1107,24 +1355,83 @@ function App() {
   )
 }
 
-function AuthPage() {
-  const [mode, setMode] = useState('login')
+function AuthPage({ initialMode = 'login', initialStatus = null, onPasswordUpdated = async () => {} }) {
+  const [mode, setMode] = useState(initialMode)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [status, setStatus] = useState({ type: 'info', text: 'Silakan login terlebih dahulu' })
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [status, setStatus] = useState(initialStatus || { type: 'info', text: 'Silakan login terlebih dahulu' })
+  const [statusAction, setStatusAction] = useState(null)
   const isLogin = mode === 'login'
+  const isRegister = mode === 'register'
+  const isReset = mode === 'reset'
+  const isRecovery = mode === 'recovery'
+
+  const changeMode = (nextMode) => {
+    setMode(nextMode)
+    setPassword('')
+    setNewPassword('')
+    setConfirmPassword('')
+    setShowPassword(false)
+    setShowNewPassword(false)
+    setShowConfirmPassword(false)
+    setStatusAction(null)
+    setStatus({ type: 'info', text: nextMode === 'reset' ? 'Masukkan email akun kamu.' : 'Silakan login terlebih dahulu' })
+  }
 
   const submit = async (event) => {
     event.preventDefault()
+    const cleanEmail = email.trim()
+    const cleanPassword = password.trim()
+    setStatusAction(null)
+
+    if (!cleanEmail) {
+      setStatus({ type: 'error', text: 'Email wajib diisi.' })
+      return
+    }
+
+    if (!cleanPassword) {
+      setStatus({ type: 'error', text: 'Password wajib diisi.' })
+      return
+    }
+
     setStatus({ type: 'info', text: 'Memuat data...' })
 
     const result = isLogin
-      ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({ email, password })
+      ? await supabase.auth.signInWithPassword({ email: cleanEmail, password: cleanPassword })
+      : await supabase.auth.signUp({ email: cleanEmail, password: cleanPassword })
 
     if (result.error) {
-      setStatus({ type: 'error', text: result.error.message })
+      const isRegisteredEmail = isRegisteredEmailError(result.error)
+      setStatus({ type: 'error', text: getAuthErrorMessage(result.error, isLogin ? 'Gagal masuk.' : 'Gagal daftar akun.') })
+      setStatusAction(isRegisteredEmail ? 'registered-email' : null)
       return
+    }
+
+    if (isRegister) {
+      const identities = result.data?.user?.identities
+
+      if (Array.isArray(identities) && identities.length === 0) {
+        setStatus({
+          type: 'error',
+          text: 'Email ini sudah terdaftar. Silakan masuk atau gunakan fitur lupa password.',
+        })
+        setStatusAction('registered-email')
+        return
+      }
+
+      if (!Array.isArray(identities) || identities.length === 0) {
+        setStatus({
+          type: 'info',
+          text: 'Jika email ini belum terdaftar, link konfirmasi akan dikirim. Jika sudah terdaftar, silakan masuk atau gunakan lupa password.',
+        })
+        setStatusAction('registered-email')
+        return
+      }
     }
 
     setStatus({
@@ -1133,41 +1440,166 @@ function AuthPage() {
     })
   }
 
+  const submitResetPassword = async (event) => {
+    event.preventDefault()
+    const cleanEmail = email.trim()
+
+    if (!cleanEmail) {
+      setStatus({ type: 'error', text: 'Email wajib diisi.' })
+      return
+    }
+
+    setStatus({ type: 'info', text: 'Mengirim link reset...' })
+    const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+      redirectTo: window.location.origin,
+    })
+
+    if (error) {
+      setStatus({ type: 'error', text: getAuthErrorMessage(error, 'Gagal mengirim link reset password.') })
+      return
+    }
+
+    setStatus({ type: 'success', text: 'Link reset password sudah dikirim. Silakan periksa email kamu.' })
+  }
+
+  const submitNewPassword = async (event) => {
+    event.preventDefault()
+
+    if (!newPassword) {
+      setStatus({ type: 'error', text: 'Password baru wajib diisi.' })
+      return
+    }
+
+    if (!confirmPassword) {
+      setStatus({ type: 'error', text: 'Konfirmasi password wajib diisi.' })
+      return
+    }
+
+    if (newPassword.length < 6) {
+      setStatus({ type: 'error', text: 'Password minimal 6 karakter.' })
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setStatus({ type: 'error', text: 'Password dan konfirmasi tidak sama.' })
+      return
+    }
+
+    setStatus({ type: 'info', text: 'Menyimpan password baru...' })
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+
+    if (error) {
+      setStatus({ type: 'error', text: getAuthErrorMessage(error, 'Gagal menyimpan password baru.') })
+      return
+    }
+
+    setNewPassword('')
+    setConfirmPassword('')
+    setStatus({ type: 'success', text: 'Password berhasil diperbarui. Silakan masuk kembali.' })
+    await onPasswordUpdated()
+  }
+
+  const title = isRecovery
+    ? 'Buat Password Baru'
+    : isReset
+      ? 'Reset Password'
+      : isLogin
+        ? 'Masuk ke Illustration Studio'
+        : 'Daftar Akun Illustration Studio'
+
+  const description = isRecovery
+    ? 'Masukkan password baru untuk akun kamu.'
+    : isReset
+      ? 'Kirim link reset password ke email akun kamu.'
+      : isLogin
+        ? 'Masuk untuk membuka Template Tone dan Brainstorming Ide milikmu.'
+        : 'Buat akun untuk menyimpan data dan menyinkronkannya antar perangkat.'
+
   return (
     <section className="mx-auto w-full max-w-md rounded-[28px] bg-white/86 p-6 shadow-soft ring-1 ring-white/90 backdrop-blur">
       <p className="text-sm font-semibold uppercase tracking-[0.18em] text-plum">Akun Supabase</p>
-      <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl bg-[#f8f5ee] p-2 ring-1 ring-[#eadfce]">
-        <button
-          className={`rounded-xl px-4 py-3 text-sm font-bold transition ${isLogin ? 'bg-ink text-white shadow-[0_10px_20px_rgba(32,33,43,0.18)]' : 'text-ink/60 hover:bg-white hover:text-ink'}`}
-          type="button"
-          onClick={() => setMode('login')}
-        >
-          Masuk
-        </button>
-        <button
-          className={`rounded-xl px-4 py-3 text-sm font-bold transition ${!isLogin ? 'bg-ink text-white shadow-[0_10px_20px_rgba(32,33,43,0.18)]' : 'text-ink/60 hover:bg-white hover:text-ink'}`}
-          type="button"
-          onClick={() => setMode('register')}
-        >
-          Daftar Akun
-        </button>
-      </div>
-      <h1 className="mt-5 text-3xl font-bold">{isLogin ? 'Masuk ke Illustration Studio' : 'Daftar Akun Illustration Studio'}</h1>
+      {!isRecovery ? (
+        <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl bg-[#f8f5ee] p-2 ring-1 ring-[#eadfce]">
+          <button
+            className={`rounded-xl px-4 py-3 text-sm font-bold transition ${isLogin ? 'bg-ink text-white shadow-[0_10px_20px_rgba(32,33,43,0.18)]' : 'text-ink/60 hover:bg-white hover:text-ink'}`}
+            type="button"
+            onClick={() => changeMode('login')}
+          >
+            Masuk
+          </button>
+          <button
+            className={`rounded-xl px-4 py-3 text-sm font-bold transition ${isRegister ? 'bg-ink text-white shadow-[0_10px_20px_rgba(32,33,43,0.18)]' : 'text-ink/60 hover:bg-white hover:text-ink'}`}
+            type="button"
+            onClick={() => changeMode('register')}
+          >
+            Daftar Akun
+          </button>
+        </div>
+      ) : null}
+      <h1 className="mt-5 text-3xl font-bold">{title}</h1>
       <p className="mt-2 text-sm leading-6 text-ink/65">
-        {isLogin
-          ? 'Masuk untuk membuka Template Tone dan Brainstorming Ide milikmu.'
-          : 'Buat akun untuk menyimpan data dan menyinkronkannya antar perangkat.'}
+        {description}
       </p>
-      <form className="mt-6 space-y-4" onSubmit={submit}>
-        <Field label="Email" value={email} onChange={setEmail} placeholder="nama@email.com" />
-        <Field label="Kata Sandi" value={password} onChange={setPassword} placeholder="Minimal 6 karakter" type="password" />
-        <button className="btn-primary w-full" type="submit">
-          {isLogin ? 'Masuk' : 'Daftar Akun'}
-        </button>
-      </form>
-      <button className="mt-4 text-sm font-bold text-plum hover:text-ink" type="button" onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>
-        {isLogin ? 'Belum punya akun? Daftar Akun' : 'Sudah punya akun? Masuk'}
-      </button>
+      {isRecovery ? (
+        <form className="mt-6 space-y-4" onSubmit={submitNewPassword}>
+          <PasswordField
+            label="Password Baru"
+            value={newPassword}
+            onChange={setNewPassword}
+            placeholder="Minimal 6 karakter"
+            isVisible={showNewPassword}
+            onToggle={() => setShowNewPassword((current) => !current)}
+          />
+          <PasswordField
+            label="Konfirmasi Password Baru"
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+            placeholder="Ulangi password baru"
+            isVisible={showConfirmPassword}
+            onToggle={() => setShowConfirmPassword((current) => !current)}
+          />
+          <button className="btn-primary w-full" type="submit">
+            Simpan Password Baru
+          </button>
+        </form>
+      ) : isReset ? (
+        <form className="mt-6 space-y-4" onSubmit={submitResetPassword}>
+          <Field label="Email" value={email} onChange={setEmail} placeholder="nama@email.com" />
+          <button className="btn-primary w-full" type="submit">
+            Kirim Link Reset Password
+          </button>
+          <button className="w-full text-sm font-bold text-plum hover:text-ink" type="button" onClick={() => changeMode('login')}>
+            Kembali ke Masuk
+          </button>
+        </form>
+      ) : (
+        <>
+          <form className="mt-6 space-y-4" onSubmit={submit}>
+            <Field label="Email" value={email} onChange={setEmail} placeholder="nama@email.com" />
+            <PasswordField
+              label="Kata Sandi"
+              value={password}
+              onChange={setPassword}
+              placeholder="Minimal 6 karakter"
+              isVisible={showPassword}
+              onToggle={() => setShowPassword((current) => !current)}
+            />
+            {isLogin ? (
+              <div className="flex justify-end">
+                <button className="text-sm font-bold text-plum hover:text-ink" type="button" onClick={() => changeMode('reset')}>
+                  Lupa password?
+                </button>
+              </div>
+            ) : null}
+            <button className="btn-primary w-full" type="submit">
+              {isLogin ? 'Masuk' : 'Daftar Akun'}
+            </button>
+          </form>
+          <button className="mt-4 text-sm font-bold text-plum hover:text-ink" type="button" onClick={() => changeMode(isLogin ? 'register' : 'login')}>
+            {isLogin ? 'Belum punya akun? Daftar Akun' : 'Sudah punya akun? Masuk'}
+          </button>
+        </>
+      )}
       <p className={`mt-4 rounded-2xl px-4 py-3 text-sm font-bold ring-1 ${
         status.type === 'success'
           ? 'bg-[#eaf6e8] text-[#275c35] ring-[#b9ddb8]'
@@ -1177,6 +1609,16 @@ function AuthPage() {
       }`}>
         {status.text}
       </p>
+      {statusAction === 'registered-email' ? (
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <button className="btn-secondary flex-1 px-4 py-2" type="button" onClick={() => changeMode('login')}>
+            Masuk
+          </button>
+          <button className="btn-secondary flex-1 px-4 py-2" type="button" onClick={() => changeMode('reset')}>
+            Lupa Password
+          </button>
+        </div>
+      ) : null}
     </section>
   )
 }
@@ -1303,11 +1745,14 @@ function TemplateToneView({
 
 function BrainstormingView({
   brainstorm,
+  brainstormAiError,
+  brainstormAiLoading,
   brainstormName,
   brainstorms,
   copiedTarget,
   copyText,
   deleteBrainstorm,
+  developBrainstormIdea,
   loadSelectedBrainstorm,
   outputs,
   resetBrainstorm,
@@ -1319,58 +1764,143 @@ function BrainstormingView({
   updateBrainstorm,
   updateSavedBrainstorm,
 }) {
+  const activeInterpretation = getActiveInterpretation(brainstorm)
+  const suggestionGroups = [
+    ['Karakter', 'selectedCharacter', outputs.suggestions.characters],
+    ['Pose / Gesture', 'selectedPose', outputs.suggestions.poses],
+    ['Highlight Visual', 'selectedElement', outputs.suggestions.elements],
+    ['Warna & Mood', 'selectedMood', outputs.suggestions.moods],
+  ]
+  const recommendationLabels = [
+    ['Energy', outputs.recommendation.energy],
+    ['Emotional Tone', outputs.recommendation.emotional],
+    ['Mood', outputs.recommendation.mood],
+    ['Power Dynamic', outputs.recommendation.power],
+  ]
+
   return (
-    <section className="grid gap-6 lg:grid-cols-[1fr_1.05fr]">
-      <div className="flex flex-col gap-6">
-        <Panel title="Data Ide">
-          <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
-            <input className="input-base" value={brainstormName} onChange={(event) => setBrainstormName(event.target.value)} placeholder="Nama ide" />
-            <button className="btn-primary" type="button" onClick={saveBrainstorm}>Simpan</button>
-            <button className="btn-secondary" type="button" onClick={updateSavedBrainstorm} disabled={!selectedBrainstormId}>Perbarui</button>
+    <section className="flex min-w-0 flex-col gap-6">
+      <Panel title="Input Kata Kunci">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <Field
+            label="Kata Kunci / Tema"
+            value={brainstorm.keyword}
+            onChange={(value) => updateBrainstorm('keyword', value)}
+            placeholder="Contoh: terjebak, bebas, rindu, lelah, pulang, asing..."
+          />
+          <button className="btn-primary w-full lg:w-auto" type="button" onClick={developBrainstormIdea} disabled={brainstormAiLoading}>
+            {brainstormAiLoading ? 'Mengembangkan...' : 'Kembangkan Ide'}
+          </button>
+        </div>
+        {brainstormAiError ? (
+          <p className="mt-4 rounded-2xl bg-[#fff0ef] px-4 py-3 text-sm font-bold text-[#8a2932] ring-1 ring-[#efc2bf]">
+            {brainstormAiError}
+          </p>
+        ) : null}
+      </Panel>
+
+      <Panel title="Arah Interpretasi">
+        <div className="flex flex-wrap gap-2">
+          {interpretationOptions.map((option) => (
+            <button
+              key={option}
+              className={`rounded-2xl px-4 py-2 text-sm font-bold transition ${brainstorm.interpretation === option && !brainstorm.customInterpretation ? 'bg-ink text-white' : 'bg-[#f8f5ee] text-ink/60 hover:bg-white hover:text-ink'}`}
+              type="button"
+              onClick={() => {
+                updateBrainstorm('interpretation', option)
+                updateBrainstorm('customInterpretation', '')
+              }}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+        <div className="mt-4">
+          <Field
+            label="Arah sendiri"
+            value={brainstorm.customInterpretation}
+            onChange={(value) => updateBrainstorm('customInterpretation', value)}
+            placeholder="Contoh: surealis lembut, komedi pahit, urban misterius"
+          />
+        </div>
+        <p className="mt-3 text-sm font-semibold text-ink/55">Arah aktif: {activeInterpretation}</p>
+      </Panel>
+
+      <Panel title="Data Ide Tersimpan">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
+          <input className="input-base min-w-0" value={brainstormName} onChange={(event) => setBrainstormName(event.target.value)} placeholder="Nama ide" />
+          <button className="btn-primary" type="button" onClick={saveBrainstorm}>Simpan Ide</button>
+          <button className="btn-secondary" type="button" onClick={updateSavedBrainstorm} disabled={!selectedBrainstormId}>Perbarui Ide</button>
+          <button className="btn-danger" type="button" onClick={resetBrainstorm}>Kosongkan Semua</button>
+        </div>
+        <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_auto]">
+          <select className="input-base min-w-0" value={selectedBrainstormId} onChange={(event) => setSelectedBrainstormId(event.target.value)}>
+            <option value="">Pilih ide tersimpan</option>
+            {brainstorms.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select>
+          <button className="btn-secondary" type="button" onClick={loadSelectedBrainstorm} disabled={!selectedBrainstormId}>Muat Ide</button>
+          <button className="btn-danger" type="button" onClick={deleteBrainstorm} disabled={!selectedBrainstormId}>Hapus Ide</button>
+        </div>
+      </Panel>
+
+      {brainstorm.developed ? (
+        <Panel title="Saran Visual">
+          <div className="grid gap-4 lg:grid-cols-2">
+            {suggestionGroups.map(([title, field, suggestions]) => (
+              <div key={title} className="min-w-0 rounded-2xl bg-[#f8f5ee] p-4 ring-1 ring-[#eadfce]">
+                <h3 className="mb-3 text-sm font-bold text-ink/70">{title}</h3>
+                <div className="flex flex-wrap gap-2">
+                  {suggestions.map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      className={`max-w-full break-words rounded-2xl px-3 py-2 text-left text-sm font-semibold transition ${brainstorm[field] === suggestion ? 'bg-plum text-white' : 'bg-white text-ink/65 ring-1 ring-[#eadfce] hover:text-ink'}`}
+                      type="button"
+                      onClick={() => updateBrainstorm(field, suggestion)}
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto_auto]">
-            <select className="input-base" value={selectedBrainstormId} onChange={(event) => setSelectedBrainstormId(event.target.value)}>
-              <option value="">Pilih ide tersimpan</option>
-              {brainstorms.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
-            <button className="btn-secondary" type="button" onClick={loadSelectedBrainstorm} disabled={!selectedBrainstormId}>Muat</button>
-            <button className="btn-danger" type="button" onClick={deleteBrainstorm} disabled={!selectedBrainstormId}>Hapus</button>
+        </Panel>
+      ) : null}
+
+      <section className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <Panel title="Pilihan Saya">
+          <div className="grid gap-4">
+            <Field label="Karakter Pilihan" value={brainstorm.selectedCharacter} onChange={(value) => updateBrainstorm('selectedCharacter', value)} placeholder="Contoh: karakter yang menyembunyikan sesuatu" />
+            <Field label="Pose / Gesture Pilihan" value={brainstorm.selectedPose} onChange={(value) => updateBrainstorm('selectedPose', value)} placeholder="Contoh: tangan menggenggam erat" />
+            <Field label="Elemen Visual Pilihan" value={brainstorm.selectedElement} onChange={(value) => updateBrainstorm('selectedElement', value)} placeholder="Contoh: cahaya dari jendela, pintu, kaca retak" />
+            <Field label="Warna / Mood Pilihan" value={brainstorm.selectedMood} onChange={(value) => updateBrainstorm('selectedMood', value)} placeholder="Contoh: biru dingin, cahaya hangat dari luar" />
+            <Field label="Catatan Tambahan" value={brainstorm.additionalNotes} onChange={(value) => updateBrainstorm('additionalNotes', value)} multiline placeholder="Tambahkan detail cerita, simbol, komposisi, atau batasan visual." />
           </div>
         </Panel>
 
-        <Panel title="Inspirasi">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Sumber Inspirasi" value={brainstorm.inspirationSource} onChange={(value) => updateBrainstorm('inspirationSource', value)} placeholder="Contoh: lagu, film, memori masa kecil, foto perjalanan" />
-            <Field label="Referensi Spesifik" value={brainstorm.specificReference} onChange={(value) => updateBrainstorm('specificReference', value)} placeholder="Contoh: adegan hujan di film, cover album, foto pasar malam" />
-            <Field label="Hal yang Menarik" value={brainstorm.interestingThing} onChange={(value) => updateBrainstorm('interestingThing', value)} multiline placeholder="Contoh: kontras antara lampu hangat dan langit dingin" />
-            <Field label="Kata Kunci" value={brainstorm.keywords} onChange={(value) => updateBrainstorm('keywords', value)} multiline placeholder="Contoh: hening, neon, nostalgia, kain merah, kabut tipis" />
-          </div>
-        </Panel>
+        <div className="flex min-w-0 flex-col gap-6">
+          <Panel title="Ringkasan Konsep">
+            <div className="mb-3 flex flex-wrap justify-end gap-2">
+              <button className="btn-secondary px-4 py-2" type="button" onClick={() => copyText('brainstorm-summary', outputs.summary)}>{copiedTarget === 'brainstorm-summary' ? 'Tersalin' : 'Salin Ringkasan'}</button>
+              <button className="btn-secondary px-4 py-2" type="button" onClick={sendBrainstormToTemplate}>Kirim ke Illustration Slider</button>
+            </div>
+            <OutputBlock text={outputs.summary} />
+            <h3 className="mb-2 mt-4 text-sm font-bold text-ink/70">Elemen Utama</h3>
+            <OutputBlock text={outputs.visualElements} compact preLine />
+          </Panel>
 
-        <Panel title="Ide Gambar">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Subjek Utama" value={brainstorm.mainSubject} onChange={(value) => updateBrainstorm('mainSubject', value)} placeholder="Contoh: penjaga toko bunga yang mengantuk" />
-            <Field label="Lokasi" value={brainstorm.location} onChange={(value) => updateBrainstorm('location', value)} placeholder="Contoh: gang kecil setelah hujan" />
-            <Field label="Momen / Aktivitas" value={brainstorm.moment} onChange={(value) => updateBrainstorm('moment', value)} multiline placeholder="Contoh: menyusun bunga terakhir sebelum toko tutup" />
-            <Field label="Objek Penting" value={brainstorm.importantObject} onChange={(value) => updateBrainstorm('importantObject', value)} multiline placeholder="Contoh: payung transparan, papan toko tua, buket kuning" />
-            <div className="sm:col-span-2"><Field label="Rasa yang Ingin Ditangkap" value={brainstorm.capturedFeeling} onChange={(value) => updateBrainstorm('capturedFeeling', value)} placeholder="Contoh: tenang, sedikit melankolis, tapi tetap hangat" /></div>
-          </div>
-        </Panel>
-      </div>
-
-      <div className="flex flex-col gap-6">
-        <Panel title="Hasil Ide">
-          <div className="mb-3 flex flex-wrap justify-end gap-2">
-            <button className="btn-secondary px-4 py-2" type="button" onClick={() => copyText('brainstorm-summary', outputs.summary)}>{copiedTarget === 'brainstorm-summary' ? 'Tersalin' : 'Salin Ringkasan'}</button>
-            <button className="btn-secondary px-4 py-2" type="button" onClick={sendBrainstormToTemplate}>Kirim ke Illustration Slider</button>
-            <button className="btn-danger px-4 py-2" type="button" onClick={resetBrainstorm}>Atur Ulang</button>
-          </div>
-          <h3 className="mb-2 text-sm font-bold text-ink/70">Ringkasan Ide</h3>
-          <OutputBlock text={outputs.summary} />
-          <h3 className="mb-2 mt-4 text-sm font-bold text-ink/70">Elemen Visual</h3>
-          <OutputBlock text={outputs.visualElements} compact />
-        </Panel>
-      </div>
+          <Panel title="Rekomendasi Slider Awal">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {recommendationLabels.map(([label, value]) => (
+                <div key={label} className="rounded-2xl bg-[#f8f5ee] p-4 ring-1 ring-[#eadfce]">
+                  <p className="text-sm font-bold text-ink/60">{label}</p>
+                  <p className="mt-1 text-2xl font-bold text-ink">{value}</p>
+                </div>
+              ))}
+            </div>
+          </Panel>
+        </div>
+      </section>
     </section>
   )
 }
@@ -1663,6 +2193,49 @@ function StatusBadge({ text }) {
 
 function Panel({ title, children }) {
   return <section className="min-w-0 overflow-hidden rounded-[24px] bg-white/86 p-5 shadow-soft ring-1 ring-white/90 backdrop-blur"><h2 className="mb-4 text-lg font-bold">{title}</h2>{children}</section>
+}
+
+function PasswordField({ label, value, onChange, placeholder, isVisible, onToggle }) {
+  return (
+    <label className="block min-w-0">
+      <span className="mb-2 block text-sm font-semibold text-ink/70">{label}</span>
+      <div className="flex min-w-0 items-stretch rounded-2xl bg-white ring-1 ring-[#eadfce] focus-within:ring-2 focus-within:ring-plum/30">
+        <input
+          className="min-w-0 flex-1 rounded-l-2xl bg-transparent px-4 py-3 text-sm outline-none"
+          type={isVisible ? 'text' : 'password'}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+        />
+        <button
+          className="shrink-0 rounded-r-2xl px-3 text-xs font-bold text-plum transition hover:bg-[#f8f5ee] hover:text-ink sm:px-4"
+          type="button"
+          onClick={onToggle}
+        >
+          {isVisible ? 'Sembunyikan' : 'Tampilkan'}
+        </button>
+      </div>
+    </label>
+  )
+}
+
+function getAuthErrorMessage(error, fallback) {
+  const message = error?.message || ''
+  const lowerMessage = message.toLowerCase()
+
+  if (lowerMessage.includes('invalid login credentials')) return 'Email atau password tidak sesuai.'
+  if (lowerMessage.includes('email not confirmed')) return 'Email belum dikonfirmasi. Silakan periksa kotak masuk kamu.'
+  if (lowerMessage.includes('password should be at least')) return 'Password minimal 6 karakter.'
+  if (lowerMessage.includes('user already registered')) return 'Email ini sudah terdaftar. Silakan masuk.'
+  if (lowerMessage.includes('rate limit')) return 'Terlalu banyak percobaan. Coba lagi beberapa saat lagi.'
+  if (lowerMessage.includes('over email send rate limit')) return 'Terlalu sering mengirim email. Coba lagi beberapa saat lagi.'
+
+  return fallback || 'Terjadi kesalahan. Coba lagi.'
+}
+
+function isRegisteredEmailError(error) {
+  const message = error?.message?.toLowerCase() || ''
+  return message.includes('user already registered') || message.includes('already registered') || message.includes('already exists')
 }
 
 function Field({ label, value, onChange, onClear, multiline = false, placeholder = '', type = 'text' }) {
