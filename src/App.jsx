@@ -626,7 +626,8 @@ function App() {
     setBrainstorm((current) => ({ ...current, [field]: value }))
   }
 
-  const developBrainstormIdea = async () => {
+  const developBrainstormIdea = async (event) => {
+    event?.preventDefault()
     const keyword = brainstorm.keyword.trim()
     if (!keyword) {
       setSaveStatus('Kata kunci wajib diisi')
@@ -639,7 +640,7 @@ function App() {
     setSaveStatus('Mengembangkan ide...')
 
     try {
-      const response = await fetch('/api/brainstorm', {
+      const response = await fetch("/api/brainstorm", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ keyword }),
@@ -647,7 +648,8 @@ function App() {
       const result = await response.json().catch(() => ({}))
 
       if (!response.ok) {
-        throw new Error(result.error || 'Gagal mengembangkan ide dengan Gemini.')
+        const detail = result.error || `Request gagal dengan status ${response.status}.`
+        throw new Error(`Gagal mengembangkan ide: ${detail}`)
       }
 
       const aiSuggestions = normalizeAiSuggestions({
@@ -670,8 +672,10 @@ function App() {
       }))
       setSaveStatus('Ide berhasil dikembangkan')
     } catch (error) {
+      console.error('Brainstorm request failed:', error)
       setBrainstorm((current) => ({ ...current, developed: true, aiSuggestions: null, aiConceptSummary: '' }))
-      setBrainstormAiError(error.message || 'Gagal mengembangkan ide dengan Gemini. Saran lokal tetap ditampilkan.')
+      const message = error.message || 'Gagal mengembangkan ide dengan Gemini. Saran lokal tetap ditampilkan.'
+      setBrainstormAiError(`${message} Saran lokal tetap ditampilkan.`)
       setSaveStatus('Gagal mengembangkan ide dengan Gemini. Saran lokal tetap ditampilkan.')
     } finally {
       setBrainstormAiLoading(false)
@@ -1781,17 +1785,17 @@ function BrainstormingView({
   return (
     <section className="flex min-w-0 flex-col gap-6">
       <Panel title="Input Kata Kunci">
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+        <form className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end" onSubmit={developBrainstormIdea}>
           <Field
             label="Kata Kunci / Tema"
             value={brainstorm.keyword}
             onChange={(value) => updateBrainstorm('keyword', value)}
             placeholder="Contoh: terjebak, bebas, rindu, lelah, pulang, asing..."
           />
-          <button className="btn-primary w-full lg:w-auto" type="button" onClick={developBrainstormIdea} disabled={brainstormAiLoading}>
+          <button className="btn-primary w-full lg:w-auto" type="submit" disabled={brainstormAiLoading}>
             {brainstormAiLoading ? 'Mengembangkan...' : 'Kembangkan Ide'}
           </button>
-        </div>
+        </form>
         {brainstormAiError ? (
           <p className="mt-4 rounded-2xl bg-[#fff0ef] px-4 py-3 text-sm font-bold text-[#8a2932] ring-1 ring-[#efc2bf]">
             {brainstormAiError}
